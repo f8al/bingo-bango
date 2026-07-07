@@ -1,0 +1,48 @@
+@import 'tailwindcss';
+
+/* Design tokens. Spotify green as the accent; a dark, near-black base with a
+   light-mode fallback. Both themes are supported via prefers-color-scheme. */
+@theme {
+  --color-spotify: #1db954;
+  --color-spotify-dark: #169c46;
+  --color-ink: #0b0f14;
+  --color-ink-soft: #151b23;
+  --color-ink-line: #263140;
+}
+
+:root {
+  color-scheme: light dark;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background-color: var(--color-ink);
+  color: #e6edf3;
+  font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial,
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+@media (prefers-color-scheme: light) {
+  body {
+    background-color: #f6f8fa;
+    color: #0b0f14;
+  }
+}
+
+/* Print styles: hide chrome, lay cards out cleanly for paper. */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: #fff !important;
+    color: #000 !important;
+  }
+}

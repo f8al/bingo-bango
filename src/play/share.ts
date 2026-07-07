@@ -1,0 +1,74 @@
+/**
+ * Self-contained share encoding for a single bingo card.
+ *
+ * A shared card is encoded into a compact JSON payload and base64url-stuffed
+ * into the URL hash, so a link (or its QR code) reconstructs the exact card on
+ * any device — no backend, no shared state required.
+ */
+
+import type { BingoCard, CardCell } from '../cards';
+
+/** Compact wire form: free space -> 0; song -> [title, artistsJoined]. */
+type WireCell = 0 | [string, string];
+interface WireCard {
+  v: 1;
+  id: string;
+  g: number;
+  c: WireCell[];
+}
+
+function toWire(card: BingoCard): WireCard {
+  return {
+    v: 1,
+    id: card.id,
+    g: card.gridSize,
+    c: card.cells.map((cell): WireCell =>
+      cell.isFreeSpace || !cell.song ? 0 : [cell.song.title, cell.song.artists.join(', ')],
+    ),
+  };
+}
+
+function fromWire(wire: WireCard): BingoCard {
+  const cells: CardCell[] = wire.c.map((wc): CardCell => {
+    if (wc === 0) return { song: null, isFreeSpace: true };
+    const [title, artist] = wc;
+    return {
+      song: { id: `${title}::${artist}`, title, artists: artist ? artist.split(', ') : [] },
+      isFreeSpace: false,
+    };
+  });
+  return { id: wire.id, gridSize: wire.g, cells };
+}
+
+/** UTF-8 safe base64url encode. */
+function b64urlEncode(str: string): string {
+  const bytes = new TextEncoder().encode(str);
+  let bin = '';
+  for (const b of bytes) bin += String.fromCharCode(b);
+  return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+/** UTF-8 safe base64url decode. */
+function b64urlDecode(s: string): string {
+  const padded = s.replace(/-/g, '+').replace(/_/g, '/').padEnd(Math.ceil(s.length / 4) * 4, '=');
+  const bin = atob(padded);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return new TextDecoder().decode(bytes);
+}
+
+/** Encode a card into a URL-safe string for the `#c=` share hash. */
+export function encodeCard(card: BingoCard): string {
+  return b64urlEncode(JSON.stringify(toWire(card)));
+}
+
+/** Decode a shared card string. Returns null on any malformed input. */
+export function decodeCard(encoded: string): BingoCard | null {
+  try {
+    const wire = JSON.parse(b64urlDecode(encoded)) as WireCard;
+    if (wire.v !== 1 || !Array.isArray(wire.c) || typeof wire.g !== 'number') return null;
+    return fromWire(wire);
+  } catch {
+    return null;
+  }
+}
