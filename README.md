@@ -9,6 +9,17 @@ for free as static files.
 
 ---
 
+## Screenshots
+
+|                         Landing                          |                          Generate a batch                          |                        Play + share (mobile)                        |
+| :------------------------------------------------------: | :----------------------------------------------------------------: | :-----------------------------------------------------------------: |
+| [![Landing](docs/screenshots/home.png)](docs/screenshots/home.png) | [![Generate](docs/screenshots/generate.png)](docs/screenshots/generate.png) | [![Play](docs/screenshots/play-mobile.png)](docs/screenshots/play-mobile.png) |
+
+_Shown in demo mode (built-in party playlist). Interactive card with a completed
+top row → BINGO, plus a shareable QR code._
+
+---
+
 ## What is music bingo?
 
 Music bingo (a.k.a. "musical bingo" or "song bingo") is a party game that swaps

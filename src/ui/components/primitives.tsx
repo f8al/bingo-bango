@@ -7,8 +7,7 @@ type Variant = 'primary' | 'secondary' | 'ghost';
 const VARIANTS: Record<Variant, string> = {
   primary:
     'bg-[var(--color-spotify)] text-black hover:bg-[var(--color-spotify-dark)] font-semibold',
-  secondary:
-    'bg-white/10 text-white hover:bg-white/20 border border-white/15 dark:text-white',
+  secondary: 'bg-white/10 text-white hover:bg-white/20 border border-white/15',
   ghost: 'bg-transparent hover:bg-white/10 text-current',
 };
 
@@ -40,7 +39,7 @@ export function Spinner({ label }: { label?: string }) {
 export function Panel({ children, className = '' }: { children: ReactNode; className?: string }) {
   return (
     <div
-      className={`rounded-2xl border border-white/10 bg-black/20 p-5 shadow-lg backdrop-blur dark:bg-white/[0.03] ${className}`}
+      className={`rounded-2xl border border-white/10 bg-white/[0.04] p-5 shadow-lg backdrop-blur ${className}`}
     >
       {children}
     </div>

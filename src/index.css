@@ -10,8 +10,11 @@
   --color-ink-line: #263140;
 }
 
+/* The app commits to a dark, Spotify-flavored theme so contrast is consistent
+   regardless of the viewer's OS preference. Print output is handled separately
+   below, and PDF export renders on a white page via jsPDF. */
 :root {
-  color-scheme: light dark;
+  color-scheme: dark;
 }
 
 html,
@@ -27,13 +30,6 @@ body {
   font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial,
     sans-serif;
   -webkit-font-smoothing: antialiased;
-}
-
-@media (prefers-color-scheme: light) {
-  body {
-    background-color: #f6f8fa;
-    color: #0b0f14;
-  }
 }
 
 /* Print styles: hide chrome, lay cards out cleanly for paper. */

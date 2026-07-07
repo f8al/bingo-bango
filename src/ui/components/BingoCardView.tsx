@@ -53,7 +53,7 @@ export function BingoCardView({ card, interactive = false, compact = false }: Pr
         )}
       </div>
       <div
-        className="grid gap-1.5 rounded-xl bg-black/20 p-1.5 dark:bg-white/5"
+        className="grid gap-1.5 rounded-xl bg-white/5 p-1.5"
         style={{ gridTemplateColumns: `repeat(${card.gridSize}, minmax(0, 1fr))` }}
         role="grid"
         aria-label={`Bingo card ${card.id}`}
