@@ -66,12 +66,29 @@ and [`docs/ROADMAP.md`](docs/ROADMAP.md) for the full plan.
 
 ---
 
+## Features
+
+- **Log in with Spotify** (read-only, PKCE — no client secret) and pick any of
+  your playlists as the song pool.
+- **Demo mode**: no Spotify app configured? The app runs on a built-in party
+  playlist so you can try everything without credentials.
+- **Generate unique cards** — choose grid size (3×3 / 4×4 / 5×5), free space,
+  how many cards, and an optional seed for reproducible batches.
+- **Print-ready PDF export** (one card per page).
+- **Interactive digital cards** with tap-to-mark and automatic **BINGO
+  detection** (row / column / diagonal).
+- **Caller screen** that draws songs in a deterministic shuffled order.
+- **Share a card** via link + **QR code** — the card is encoded in the URL, so it
+  opens on any device with no backend.
+- **Installable PWA** with an offline app shell; mobile-first and theme-aware.
+
 ## Project status
 
-Early. The current milestone (**M1**) is the **card-generation core**: a pure,
-deterministic, well-tested TypeScript module with no Spotify or DOM dependencies.
-The Spotify integration and UI are built on top of it in later milestones — see
-the [roadmap](docs/ROADMAP.md).
+**All milestones (M0–M5) are implemented.** The pure card engine
+([`src/cards/`](src/cards/)) is fully unit-tested; the Spotify integration, React
+UI, PDF export, PWA, and interactive play are built on top of it. See the
+[roadmap](docs/ROADMAP.md) for the milestone breakdown and
+[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for how it all fits together.
 
 ---
 
@@ -80,13 +97,39 @@ the [roadmap](docs/ROADMAP.md).
 Requires Node 18+.
 
 ```bash
-npm install        # install dev dependencies
+npm install        # install dependencies
+npm run dev        # start the Vite dev server
+npm run build      # typecheck + production build to dist/
+npm run preview    # preview the production build
 npm test           # run the Vitest suite
 npm run typecheck  # type-check with tsc --noEmit
 npm run demo       # print 3 sample cards from a mock 40-song pool
 ```
 
-The card engine lives in [`src/cards/`](src/cards/) and is usable on its own:
+### Using your own Spotify playlists
+
+The app works in **demo mode** out of the box. To use real playlists:
+
+1. Create an app at the
+   [Spotify Developer Dashboard](https://developer.spotify.com/dashboard).
+2. Add redirect URIs that match where you run the app, e.g.
+   `http://127.0.0.1:5173/callback` for local dev and
+   `https://<user>.github.io/bingo-bango/callback` for GitHub Pages.
+3. Copy [`.env.example`](.env.example) to `.env` and set
+   `VITE_SPOTIFY_CLIENT_ID`. Under PKCE the client id is **public**, not a secret.
+
+### Deploying
+
+`npm run build` emits static files to `dist/` — host them anywhere. A
+[GitHub Actions workflow](.github/workflows/deploy.yml) builds and deploys to
+GitHub Pages on every push to `main` (set `BASE_PATH` for the project subpath;
+it's handled automatically in CI). Vercel/Netlify work too and handle SPA
+routing without extra config.
+
+### Using the card engine directly
+
+The card engine lives in [`src/cards/`](src/cards/) and is usable on its own,
+with no Spotify or DOM dependencies:
 
 ```ts
 import { generateCards } from './src/cards/index.js';

@@ -47,62 +47,68 @@ dependencies.
 
 ---
 
-## M2 — Static shell + PDF export ⬜
+## M2 — Static shell + PDF export ✅
 
 The app people can actually click, without Spotify yet.
 
-- ⬜ Vite + React + TypeScript + Tailwind app shell.
-- ⬜ `/generate` screen: choose count, grid size, free space; feed a manual/mock
-  pool into the engine.
-- ⬜ Responsive on-screen card rendering.
-- ⬜ Print-ready **PDF export** of a batch.
-- ⬜ Routing scaffold (`/`, `/generate`, `/card/:id`).
+- ✅ Vite + React + TypeScript + Tailwind app shell (`src/main.tsx`, `src/App.tsx`,
+  `src/ui/`).
+- ✅ `/generate` screen: choose count, grid size, free space, optional seed; feeds a
+  playlist or the built-in demo pool into the engine.
+- ✅ Responsive on-screen card rendering (`BingoCardView`).
+- ✅ Print-ready **PDF export** of a batch (`src/pdf/export.ts`, jsPDF, lazy-loaded).
+- ✅ Routing scaffold (`/`, `/callback`, `/generate`, `/card/:id`, `/call`).
 
 **Done when:** a user can generate and view cards and export a PDF from a local
 song pool, all client-side.
 
 ---
 
-## M3 — Spotify integration ⬜
+## M3 — Spotify integration ✅
 
 Real playlists as the song pool.
 
-- ⬜ PKCE auth: login, `/callback` code exchange, token refresh, logout.
-- ⬜ Playlist list (`GET /me/playlists`) and track fetch
-  (`GET /playlists/{id}/tracks`) with pagination.
-- ⬜ 429 handling (`Retry-After`) + exponential backoff.
-- ⬜ Normalize + de-dupe tracks into the engine's `Song` pool (drop local /
-  unavailable).
-- ⬜ Wire the playlist picker into `/generate`.
+- ✅ PKCE auth: login, `/callback` code exchange, token refresh, logout
+  (`src/spotify/pkce.ts`, `src/spotify/auth.ts`).
+- ✅ Playlist list (`GET /me/playlists`) and track fetch
+  (`GET /playlists/{id}/tracks`) with pagination (`src/spotify/client.ts`).
+- ✅ 429 handling (`Retry-After`) + exponential backoff.
+- ✅ Normalize + de-dupe tracks into the engine's `Song` pool, dropping local /
+  unavailable tracks (`src/spotify/normalize.ts`).
+- ✅ Playlist picker wired into `/generate`.
 
 **Done when:** a host can log in, pick a real playlist, and generate cards from it.
 
 ---
 
-## M4 — Mobile polish / PWA / deploy ⬜
+## M4 — Mobile polish / PWA / deploy ✅
 
 Make it pleasant on phones and shippable.
 
-- ⬜ Mobile-first responsive polish and a11y pass (contrast, keyboard, labels).
-- ⬜ PWA: web manifest + service worker (installable, offline app shell).
-- ⬜ Spotify branding compliance ("Powered by Spotify", attribution).
-- ⬜ GitHub Actions CI (typecheck + tests) and static deployment
-  (GitHub Pages / Vercel / Netlify).
+- ✅ Mobile-first responsive layout and a11y (semantic roles, `aria-*` labels,
+  focus-visible rings, light/dark themes).
+- ✅ PWA: web manifest + service worker via `vite-plugin-pwa` (installable,
+  offline app shell).
+- ✅ Spotify branding compliance ("Powered by Spotify" attribution, no implied
+  endorsement).
+- ✅ GitHub Actions **CI** (typecheck + tests + build) and **GitHub Pages deploy**
+  workflow with SPA deep-link fallback (`.github/workflows/`).
 
 **Done when:** the app is installable, mobile-polished, CI-gated, and deployed as
 static files at ~$0.
 
 ---
 
-## M5 — Interactive play ⬜
+## M5 — Interactive play ✅
 
 Digital cards you can actually play on.
 
-- ⬜ Interactive markable cards with automatic **BINGO detection**
-  (row/column/diagonal).
-- ⬜ Caller screen (`/call`) drawing songs in random/seeded order.
-- ⬜ Share a card / batch via link + QR.
-- ⬜ Optional: theming and winning-pattern options.
+- ✅ Interactive markable cards with automatic **BINGO detection**
+  (row/column/diagonal, free space auto-marked) — `src/play/bingo.ts`.
+- ✅ Caller screen (`/call`) drawing songs in a deterministic seeded order.
+- ✅ Share a card via self-contained link + **QR code** (`src/play/share.ts`,
+  works cross-device with no backend).
+- ⬜ Optional stretch: theming, winning-pattern options, preview playback.
 
 **Done when:** players can open a card on their phone, mark songs, and get BINGO
 detected automatically, with a working caller and shareable cards.
