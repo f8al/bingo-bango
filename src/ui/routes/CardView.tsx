@@ -84,7 +84,9 @@ export function CardView() {
       <BingoCardView card={card} interactive />
 
       <p className="text-center text-xs opacity-60">
-        Tap squares as the host plays each song. A full row, column, or diagonal wins.
+        Tap squares as the host plays each song — a played song covers its <strong>title</strong>{' '}
+        square and any square with that <strong>artist</strong>. A full row, column, or diagonal
+        wins.
       </p>
 
       <Panel className="no-print flex flex-col items-center gap-3">

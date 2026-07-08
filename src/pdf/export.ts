@@ -19,9 +19,13 @@ export interface PdfOptions {
 const PAGE = { w: 595.28, h: 841.89 }; // A4 in points
 const MARGIN = 40;
 
-function cellText(cell: CardCell): { title: string; artist: string; free: boolean } {
-  if (cell.isFreeSpace || !cell.song) return { title: 'FREE', artist: '', free: true };
-  return { title: cell.song.title, artist: cell.song.artists.join(', '), free: false };
+function cellText(cell: CardCell): { kind: string; label: string; free: boolean } {
+  if (cell.isFreeSpace || !cell.square) return { kind: '', label: 'FREE', free: true };
+  return {
+    kind: cell.square.kind === 'artist' ? 'ARTIST' : 'SONG',
+    label: cell.square.label,
+    free: false,
+  };
 }
 
 function drawCard(doc: jsPDF, card: BingoCard, opts: PdfOptions): void {
@@ -58,7 +62,7 @@ function drawCard(doc: jsPDF, card: BingoCard, opts: PdfOptions): void {
       const x = MARGIN + c * cellSize;
       const y = top + r * cellSize;
 
-      const { title, artist, free } = cellText(cell);
+      const { kind, label, free } = cellText(cell);
       if (free) {
         doc.setFillColor(29, 185, 84); // Spotify green
         doc.rect(x, y, cellSize, cellSize, 'FD');
@@ -72,22 +76,18 @@ function drawCard(doc: jsPDF, card: BingoCard, opts: PdfOptions): void {
 
       doc.rect(x, y, cellSize, cellSize, 'S');
 
+      // Kind tag (SONG / ARTIST) near the top of the cell.
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(6.5);
+      doc.setTextColor(150);
+      doc.text(kind, x + cellSize / 2, y + 12, { align: 'center' });
+      doc.setTextColor(0);
+
+      // The label (song title or artist name), centered.
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(9);
-      const titleLines = doc.splitTextToSize(title, cellSize - 10) as string[];
-      const shownTitle = titleLines.slice(0, 3);
-      doc.text(shownTitle, x + cellSize / 2, y + cellSize / 2 - 6, {
-        align: 'center',
-      });
-
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(7.5);
-      doc.setTextColor(90);
-      const artistLines = doc.splitTextToSize(artist, cellSize - 10) as string[];
-      doc.text(artistLines.slice(0, 2), x + cellSize / 2, y + cellSize / 2 + 14, {
-        align: 'center',
-      });
-      doc.setTextColor(0);
+      const labelLines = (doc.splitTextToSize(label, cellSize - 10) as string[]).slice(0, 4);
+      doc.text(labelLines, x + cellSize / 2, y + cellSize / 2 + 4, { align: 'center' });
     }
   }
 }

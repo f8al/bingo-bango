@@ -5,7 +5,13 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { generateCards, CardGenerationError, squaresPerCard, type Song } from '../../cards';
+import {
+  generateCards,
+  collectSquares,
+  CardGenerationError,
+  squaresPerCard,
+  type Song,
+} from '../../cards';
 import { getMyPlaylists, getPlaylistTracks } from '../../spotify/client';
 import { tracksToSongs } from '../../spotify/normalize';
 import type { SpotifyPlaylistSummary } from '../../spotify/types';
@@ -79,10 +85,13 @@ export function Generate() {
         playlistName = pl.name;
       }
 
-      if (pool.length < needed) {
+      const { titles, artists } = collectSquares(pool);
+      const available = titles.length + artists.length;
+      if (available < needed) {
         throw new Error(
-          `This playlist only has ${pool.length} usable songs, but a ${gridSize}×${gridSize} card ` +
-            `needs ${needed}. Pick a bigger playlist or a smaller grid.`,
+          `This playlist only yields ${available} squares (${titles.length} songs + ` +
+            `${artists.length} artists), but a ${gridSize}×${gridSize} card needs ${needed}. ` +
+            `Pick a bigger playlist or a smaller grid.`,
         );
       }
 
@@ -201,7 +210,8 @@ export function Generate() {
             {busy ? 'Generating…' : 'Generate'}
           </Button>
           <span className="text-xs opacity-60">
-            {needed} songs per card{freeSpace ? ' (+ free space)' : ''}
+            {needed} squares per card{freeSpace ? ' (+ free space)' : ''} · mix of song titles &
+            artists
           </span>
         </div>
 
@@ -240,8 +250,9 @@ function Results() {
             {result.cards.length} cards from {playlistName}
           </h2>
           <p className="text-xs opacity-60">
-            seed <code className="rounded bg-white/10 px-1">{result.seed}</code> · pool{' '}
-            {result.poolSize} songs · {result.squaresPerCard} per card
+            seed <code className="rounded bg-white/10 px-1">{result.seed}</code> · {result.songCount}{' '}
+            songs → {result.poolSize} squares ({result.titleCount} titles · {result.artistCount}{' '}
+            artists) · {result.squaresPerCard} per card
           </p>
         </div>
         <div className="no-print flex flex-wrap gap-2">

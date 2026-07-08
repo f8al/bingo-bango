@@ -8,9 +8,10 @@
  * and reproducible PDFs possible.
  */
 
-import type { BingoCard, CardCell, CardOptions, GenerateResult, Song } from './types.js';
+import type { BingoCard, CardCell, CardOptions, GenerateResult, Song, Square } from './types.js';
 import { makeRng, generateRandomSeed, xmur3, type Rng } from './rng.js';
 import { shuffle } from './shuffle.js';
+import { artistKey, normalizeArtist, titleKey } from './match.js';
 
 /** Error thrown when a valid batch of cards cannot be produced. */
 export class CardGenerationError extends Error {
@@ -47,9 +48,72 @@ export function dedupeSongs(songs: readonly Song[]): Song[] {
   return out;
 }
 
-/** Number of song squares per card for a given grid size and free-space flag. */
+/** Number of squares per card for a given grid size and free-space flag. */
 export function squaresPerCard(gridSize: number, freeSpace: boolean): number {
   return gridSize * gridSize - (freeSpace ? 1 : 0);
+}
+
+/** The title and artist square pools derived from a song list. */
+export interface SquarePool {
+  titles: Square[];
+  artists: Square[];
+}
+
+/**
+ * Build the playable square pools from songs: one `title` square per unique
+ * song (with a non-empty title), and one `artist` square per unique artist
+ * (de-duplicated case-insensitively, first-seen display name kept).
+ */
+export function collectSquares(songs: readonly Song[]): SquarePool {
+  const deduped = dedupeSongs(songs);
+  const titles: Square[] = [];
+  const artists: Square[] = [];
+  const artistSeen = new Set<string>();
+
+  for (const song of deduped) {
+    if (song.title.length > 0) {
+      titles.push({ kind: 'title', label: song.title, key: titleKey(song.id), songId: song.id });
+    }
+    for (const name of song.artists) {
+      const norm = normalizeArtist(name);
+      if (norm.length === 0 || artistSeen.has(norm)) continue;
+      artistSeen.add(norm);
+      artists.push({ kind: 'artist', label: name, key: artistKey(name) });
+    }
+  }
+
+  return { titles, artists };
+}
+
+/**
+ * Choose `need` squares for one card, aiming for a roughly even split of titles
+ * and artists. When one pool is too small to hit the target, the shortfall is
+ * taken from the other pool. Deterministic given `rng`; assumes the combined
+ * pool has at least `need` squares.
+ */
+function selectSquares(pool: SquarePool, need: number, rng: Rng): Square[] {
+  const { titles, artists } = pool;
+
+  // Split as evenly as possible; for an odd count, randomize which side gets
+  // the extra square so batches aren't biased toward titles.
+  let wantTitles =
+    need % 2 === 0 ? need / 2 : rng() < 0.5 ? Math.floor(need / 2) : Math.ceil(need / 2);
+  let wantArtists = need - wantTitles;
+
+  // Rebalance against availability so the totals still sum to `need`.
+  if (wantTitles > titles.length) {
+    wantArtists += wantTitles - titles.length;
+    wantTitles = titles.length;
+  }
+  if (wantArtists > artists.length) {
+    wantTitles += wantArtists - artists.length;
+    wantArtists = artists.length;
+  }
+
+  const chosen = shuffle(titles, rng)
+    .slice(0, wantTitles)
+    .concat(shuffle(artists, rng).slice(0, wantArtists));
+  return shuffle(chosen, rng);
 }
 
 /** Row-major index of the centered free space for an odd grid size. */
@@ -58,19 +122,19 @@ function centerIndex(gridSize: number): number {
 }
 
 /**
- * Build a single card's cells from a shuffled selection of songs.
- * `selection.length` must equal the number of song squares required.
+ * Build a single card's cells from a shuffled selection of squares.
+ * `selection.length` must equal the number of squares required.
  */
-function buildCells(selection: Song[], gridSize: number, freeSpace: boolean): CardCell[] {
+function buildCells(selection: Square[], gridSize: number, freeSpace: boolean): CardCell[] {
   const total = gridSize * gridSize;
   const center = freeSpace ? centerIndex(gridSize) : -1;
   const cells: CardCell[] = [];
-  let songPtr = 0;
+  let ptr = 0;
   for (let i = 0; i < total; i++) {
     if (i === center) {
-      cells.push({ song: null, isFreeSpace: true });
+      cells.push({ square: null, isFreeSpace: true });
     } else {
-      cells.push({ song: selection[songPtr++] as Song, isFreeSpace: false });
+      cells.push({ square: selection[ptr++] as Square, isFreeSpace: false });
     }
   }
   return cells;
@@ -78,10 +142,10 @@ function buildCells(selection: Song[], gridSize: number, freeSpace: boolean): Ca
 
 /**
  * A canonical signature for a card, used to enforce batch-wide uniqueness.
- * Two cards with the same songs in the same positions share a signature.
+ * Two cards with the same squares in the same positions share a signature.
  */
 function cardSignature(cells: CardCell[]): string {
-  return cells.map((c) => (c.isFreeSpace ? '*' : (c.song as Song).id)).join('|');
+  return cells.map((c) => (c.isFreeSpace ? '*' : (c.square as Square).key)).join('|');
 }
 
 /**
@@ -113,21 +177,9 @@ function validate(
   const needed = squaresPerCard(gridSize, freeSpace);
   if (poolSize < needed) {
     throw new CardGenerationError(
-      `not enough unique songs: need at least ${needed} but pool has ${poolSize}`,
+      `not enough unique squares: need at least ${needed} title+artist squares but pool has ${poolSize}`,
     );
   }
-}
-
-/** Generate one card from a fresh shuffle of the pool. */
-function generateOneCard(
-  pool: Song[],
-  gridSize: number,
-  freeSpace: boolean,
-  rng: Rng,
-): CardCell[] {
-  const needed = squaresPerCard(gridSize, freeSpace);
-  const selection = shuffle(pool, rng).slice(0, needed);
-  return buildCells(selection, gridSize, freeSpace);
 }
 
 /**
@@ -143,9 +195,11 @@ export function generateCards(songs: readonly Song[], options: CardOptions): Gen
   const freeSpace = options.freeSpace ?? DEFAULT_FREE_SPACE;
   const { count } = options;
 
-  const pool = dedupeSongs(songs);
-  validate(pool.length, gridSize, freeSpace, count);
+  const pool = collectSquares(songs);
+  const poolSize = pool.titles.length + pool.artists.length;
+  validate(poolSize, gridSize, freeSpace, count);
 
+  const needed = squaresPerCard(gridSize, freeSpace);
   const seed = options.seed ?? generateRandomSeed();
   const rng = makeRng(seed);
   const prefix = batchPrefix(seed);
@@ -159,12 +213,13 @@ export function generateCards(songs: readonly Song[], options: CardOptions): Gen
   while (cards.length < count) {
     if (attempts >= attemptCap) {
       throw new CardGenerationError(
-        `unable to generate ${count} unique cards from a pool of ${pool.length} ` +
+        `unable to generate ${count} unique cards from a pool of ${poolSize} squares ` +
           `after ${attempts} attempts; increase the pool size or reduce the count`,
       );
     }
     attempts++;
-    const cells = generateOneCard(pool, gridSize, freeSpace, rng);
+    const selection = selectSquares(pool, needed, rng);
+    const cells = buildCells(selection, gridSize, freeSpace);
     const sig = cardSignature(cells);
     if (signatures.has(sig)) continue;
     signatures.add(sig);
@@ -175,7 +230,10 @@ export function generateCards(songs: readonly Song[], options: CardOptions): Gen
   return {
     cards,
     seed,
-    poolSize: pool.length,
-    squaresPerCard: squaresPerCard(gridSize, freeSpace),
+    poolSize,
+    squaresPerCard: needed,
+    songCount: dedupeSongs(songs).length,
+    titleCount: pool.titles.length,
+    artistCount: pool.artists.length,
   };
 }

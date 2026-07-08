@@ -72,19 +72,22 @@ export function BingoCardView({ card, interactive = false, compact = false }: Pr
                 ? 'bg-white/25 text-white'
                 : 'bg-white/10 text-white hover:bg-white/15';
 
+          const isArtist = cell.square?.kind === 'artist';
           const content = cell.isFreeSpace ? (
             <span className={compact ? 'text-[10px]' : 'text-xs sm:text-sm'}>★ FREE</span>
           ) : (
             <>
               <span
-                className={`font-semibold ${compact ? 'text-[8px]' : 'text-[10px] sm:text-xs'} line-clamp-3`}
+                className={`${compact ? 'text-[6px]' : 'text-[7px] sm:text-[9px]'} font-bold uppercase tracking-wider ${
+                  isArtist ? 'text-sky-300/80' : 'text-amber-300/80'
+                }`}
               >
-                {cell.song?.title}
+                {isArtist ? '♪ Artist' : '♫ Song'}
               </span>
               <span
-                className={`opacity-70 ${compact ? 'text-[7px]' : 'text-[9px] sm:text-[11px]'} line-clamp-2`}
+                className={`font-semibold ${compact ? 'text-[9px]' : 'text-[11px] sm:text-sm'} line-clamp-3`}
               >
-                {cell.song?.artists.join(', ')}
+                {cell.square?.label}
               </span>
             </>
           );
@@ -97,7 +100,7 @@ export function BingoCardView({ card, interactive = false, compact = false }: Pr
               type="button"
               onClick={() => toggle(idx, cell.isFreeSpace)}
               aria-pressed={isMarked}
-              aria-label={`${cell.song?.title} by ${cell.song?.artists.join(', ')}${isMarked ? ', marked' : ''}`}
+              aria-label={`${cell.square?.kind === 'artist' ? 'Artist' : 'Song'}: ${cell.square?.label}${isMarked ? ', marked' : ''}`}
               className={cellClass}
             >
               {content}

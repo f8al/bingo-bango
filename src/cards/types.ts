@@ -19,11 +19,32 @@ export interface Song {
   albumArt?: string;
 }
 
-/** A single cell within a bingo card. Either a song square or the free space. */
+/** Whether a square holds a song title or an artist name. */
+export type SquareKind = 'title' | 'artist';
+
+/**
+ * A single playable square. Titles and artists are independent squares drawn
+ * from the same playlist: a `title` square is one specific song's title, an
+ * `artist` square is one artist (matched by *any* of that artist's songs).
+ */
+export interface Square {
+  kind: SquareKind;
+  /** Display text: the song title or the artist name. */
+  label: string;
+  /**
+   * Stable identity/dedup key. `t:<songId>` for titles, `a:<normalizedName>`
+   * for artists. Used for batch uniqueness and song→square matching.
+   */
+  key: string;
+  /** The source song id — present only for `title` squares. */
+  songId?: string;
+}
+
+/** A single cell within a bingo card. Either a playable square or the free space. */
 export interface CardCell {
-  /** The song in this cell, or `null` when this is the free space. */
-  song: Song | null;
-  /** True for the centered free space; false for a normal song square. */
+  /** The square in this cell, or `null` when this is the free space. */
+  square: Square | null;
+  /** True for the centered free space; false for a normal square. */
   isFreeSpace: boolean;
 }
 
@@ -62,8 +83,14 @@ export interface GenerateResult {
   cards: BingoCard[];
   /** The seed actually used (echoing input, or the randomly generated one). */
   seed: string;
-  /** Number of unique songs available in the de-duplicated pool. */
+  /** Total unique squares available (title squares + artist squares). */
   poolSize: number;
-  /** Number of song squares that must be filled per card (excludes free space). */
+  /** Number of squares that must be filled per card (excludes free space). */
   squaresPerCard: number;
+  /** Number of unique songs in the de-duplicated input pool. */
+  songCount: number;
+  /** Number of unique title squares available. */
+  titleCount: number;
+  /** Number of unique artist squares available. */
+  artistCount: number;
 }

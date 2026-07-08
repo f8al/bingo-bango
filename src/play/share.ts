@@ -6,12 +6,12 @@
  * any device — no backend, no shared state required.
  */
 
-import type { BingoCard, CardCell } from '../cards';
+import type { BingoCard, CardCell, Square } from '../cards';
 
-/** Compact wire form: free space -> 0; song -> [title, artistsJoined]. */
-type WireCell = 0 | [string, string];
+/** Compact wire form: free space -> 0; square -> [kindFlag, label, key]. */
+type WireCell = 0 | [0 | 1, string, string];
 interface WireCard {
-  v: 1;
+  v: 2;
   id: string;
   g: number;
   c: WireCell[];
@@ -19,23 +19,23 @@ interface WireCard {
 
 function toWire(card: BingoCard): WireCard {
   return {
-    v: 1,
+    v: 2,
     id: card.id,
     g: card.gridSize,
-    c: card.cells.map((cell): WireCell =>
-      cell.isFreeSpace || !cell.song ? 0 : [cell.song.title, cell.song.artists.join(', ')],
-    ),
+    c: card.cells.map((cell): WireCell => {
+      if (cell.isFreeSpace || !cell.square) return 0;
+      const flag: 0 | 1 = cell.square.kind === 'artist' ? 1 : 0;
+      return [flag, cell.square.label, cell.square.key];
+    }),
   };
 }
 
 function fromWire(wire: WireCard): BingoCard {
   const cells: CardCell[] = wire.c.map((wc): CardCell => {
-    if (wc === 0) return { song: null, isFreeSpace: true };
-    const [title, artist] = wc;
-    return {
-      song: { id: `${title}::${artist}`, title, artists: artist ? artist.split(', ') : [] },
-      isFreeSpace: false,
-    };
+    if (wc === 0) return { square: null, isFreeSpace: true };
+    const [flag, label, key] = wc;
+    const square: Square = { kind: flag === 1 ? 'artist' : 'title', label, key };
+    return { square, isFreeSpace: false };
   });
   return { id: wire.id, gridSize: wire.g, cells };
 }
@@ -66,7 +66,7 @@ export function encodeCard(card: BingoCard): string {
 export function decodeCard(encoded: string): BingoCard | null {
   try {
     const wire = JSON.parse(b64urlDecode(encoded)) as WireCard;
-    if (wire.v !== 1 || !Array.isArray(wire.c) || typeof wire.g !== 'number') return null;
+    if (wire.v !== 2 || !Array.isArray(wire.c) || typeof wire.g !== 'number') return null;
     return fromWire(wire);
   } catch {
     return null;

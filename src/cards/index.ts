@@ -7,6 +7,8 @@
 
 export type {
   Song,
+  Square,
+  SquareKind,
   CardCell,
   BingoCard,
   CardOptions,
@@ -17,8 +19,18 @@ export {
   generateCards,
   dedupeSongs,
   squaresPerCard,
+  collectSquares,
   CardGenerationError,
+  type SquarePool,
 } from './generate.js';
+
+export {
+  squareMatchesSong,
+  songCoverageKeys,
+  normalizeArtist,
+  titleKey,
+  artistKey,
+} from './match.js';
 
 export {
   xmur3,

@@ -21,15 +21,16 @@ describe('share encode/decode', () => {
     expect(decoded?.cells).toHaveLength(card.cells.length);
   });
 
-  it('preserves song titles/artists and the free space', () => {
+  it('preserves square kind, label, key, and the free space', () => {
     const card = sampleCard();
     const decoded = decodeCard(encodeCard(card))!;
     card.cells.forEach((cell, i) => {
       const d = decoded.cells[i]!;
       expect(d.isFreeSpace).toBe(cell.isFreeSpace);
       if (!cell.isFreeSpace) {
-        expect(d.song?.title).toBe(cell.song?.title);
-        expect(d.song?.artists.join(', ')).toBe(cell.song?.artists.join(', '));
+        expect(d.square?.kind).toBe(cell.square?.kind);
+        expect(d.square?.label).toBe(cell.square?.label);
+        expect(d.square?.key).toBe(cell.square?.key);
       }
     });
   });

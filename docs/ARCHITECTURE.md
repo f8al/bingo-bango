@@ -133,22 +133,31 @@ requirement.
 
 Implemented in [`src/cards/`](../src/cards/), pure and dependency-free.
 
-1. **De-dupe** the incoming songs by id → `pool`.
+1. **Build the square pool** (`collectSquares`): de-dupe songs by id, then emit a
+   `title` square per song (key `t:<songId>`) and an `artist` square per unique
+   artist (key `a:<normalizedName>`, de-duped case-insensitively). The pool is
+   `{ titles, artists }`; total squares = `titles + artists`.
 2. **Validate**: `count` and `gridSize` are positive integers; a free space
-   requires an **odd** `gridSize`; `pool.length ≥ gridSize² − (freeSpace ? 1 : 0)`.
+   requires an **odd** `gridSize`; total squares `≥ gridSize² − (freeSpace ? 1 : 0)`.
 3. **Seed the RNG**: `seed` string → `xmur3` 32-bit hash → `mulberry32` PRNG. If no
    seed is given, generate a random one and return it (so batches are
    reproducible after the fact).
-4. **Per card**: shuffle the pool with an **unbiased Fisher–Yates** driven by the
-   seeded RNG, take the first `squaresPerCard` songs, and lay them out row-major,
-   inserting the **centered free space** at index `(gridSize² − 1) / 2` when
-   enabled.
-5. **Batch uniqueness**: compute a canonical signature per card; if a new card
-   collides with one already in the batch, retry (drawing further from the same
-   deterministic stream) up to an attempt cap. If the cap is exceeded (pool too
-   small to yield enough distinct cards), throw `CardGenerationError`.
+4. **Per card** (`selectSquares`): pick a roughly **even mix of titles and
+   artists** (the split is rebalanced when one pool is short), shuffle each side
+   and the combined selection with an **unbiased Fisher–Yates** driven by the
+   seeded RNG, then lay the squares out row-major, inserting the **centered free
+   space** at index `(gridSize² − 1) / 2` when enabled.
+5. **Batch uniqueness**: compute a canonical signature (the ordered square keys)
+   per card; if a new card collides with one already in the batch, retry (drawing
+   further from the same deterministic stream) up to an attempt cap. If the cap is
+   exceeded (pool too small to yield enough distinct cards), throw
+   `CardGenerationError`.
 6. **IDs**: derive a short deterministic prefix from the seed (`xmur3` → 4 hex
    chars) and append a 1-based zero-padded index, e.g. `A7F3-01`.
+
+**Matching ("both facets")**: `songCoverageKeys(song)` = `[t:<id>, a:<artist>…]`;
+`squareMatchesSong` tests key membership, so playing a song covers its title
+square and every artist square for that song's artist(s).
 
 Determinism guarantee: **same seed + same pool + same options → identical
 batch**, because every random decision flows from the single seeded stream.
@@ -196,10 +205,11 @@ bingo-bango/
 │   └── ROADMAP.md
 └── src/
     ├── cards/                 # M1: pure card engine (no Spotify / DOM)
-    │   ├── types.ts
+    │   ├── types.ts           # Song, Square, CardCell, BingoCard, …
     │   ├── rng.ts
     │   ├── shuffle.ts
-    │   ├── generate.ts
+    │   ├── match.ts           # song→square matching ("both facets")
+    │   ├── generate.ts        # collectSquares + generateCards
     │   ├── index.ts
     │   ├── demo.ts
     │   └── *.test.ts

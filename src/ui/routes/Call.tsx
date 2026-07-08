@@ -52,6 +52,9 @@ export function Call() {
             <span className="text-xs uppercase tracking-widest opacity-60">Now playing</span>
             <span className="text-3xl font-black">{current.title}</span>
             <span className="text-lg opacity-80">{current.artists.join(', ')}</span>
+            <span className="mt-1 text-xs opacity-50">
+              Players mark the <strong>title</strong> and the <strong>artist</strong> on their cards.
+            </span>
           </>
         ) : (
           <span className="opacity-70">Press “Call next song” to begin.</span>

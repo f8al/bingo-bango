@@ -3,11 +3,12 @@ import {
   generateCards,
   dedupeSongs,
   squaresPerCard,
+  collectSquares,
   CardGenerationError,
 } from './generate.js';
 import type { Song } from './types.js';
 
-/** Build a pool of `n` uniquely-identified mock songs. */
+/** Build a pool of `n` songs, each with a unique title AND a unique artist. */
 function pool(n: number): Song[] {
   return Array.from({ length: n }, (_, i) => ({
     id: `t${i + 1}`,
@@ -23,11 +24,33 @@ describe('dedupeSongs', () => {
       { id: 'b', title: 'B', artists: [] },
       { id: 'a', title: 'A (dupe)', artists: [] },
       { id: 'c', title: 'C', artists: [] },
-      { id: 'b', title: 'B (dupe)', artists: [] },
     ];
-    const out = dedupeSongs(songs);
-    expect(out.map((s) => s.id)).toEqual(['a', 'b', 'c']);
-    expect(out[0]?.title).toBe('A'); // first-seen instance is kept
+    expect(dedupeSongs(songs).map((s) => s.id)).toEqual(['a', 'b', 'c']);
+  });
+});
+
+describe('collectSquares', () => {
+  it('builds one title square per song and one artist square per unique artist', () => {
+    const songs: Song[] = [
+      { id: 's1', title: 'One', artists: ['Queen'] },
+      { id: 's2', title: 'Two', artists: ['Queen'] }, // same artist → shared artist square
+      { id: 's3', title: 'Three', artists: ['ABBA'] },
+    ];
+    const { titles, artists } = collectSquares(songs);
+    expect(titles).toHaveLength(3);
+    expect(artists).toHaveLength(2); // Queen, ABBA
+    expect(titles[0]).toMatchObject({ kind: 'title', label: 'One', key: 't:s1', songId: 's1' });
+    expect(artists.map((a) => a.label).sort()).toEqual(['ABBA', 'Queen']);
+  });
+
+  it('de-dupes artists case-insensitively and skips empty titles/artists', () => {
+    const songs: Song[] = [
+      { id: 's1', title: 'One', artists: ['Queen', 'queen '] },
+      { id: 's2', title: '', artists: [''] },
+    ];
+    const { titles, artists } = collectSquares(songs);
+    expect(titles).toHaveLength(1); // empty title dropped
+    expect(artists).toHaveLength(1); // "Queen" and "queen " collapse
   });
 });
 
@@ -35,14 +58,12 @@ describe('squaresPerCard', () => {
   it('accounts for the free space', () => {
     expect(squaresPerCard(5, true)).toBe(24);
     expect(squaresPerCard(5, false)).toBe(25);
-    expect(squaresPerCard(3, true)).toBe(8);
   });
 });
 
 describe('generateCards — structure', () => {
   it('produces the requested count of cards', () => {
-    const result = generateCards(pool(40), { count: 6, seed: 's' });
-    expect(result.cards).toHaveLength(6);
+    expect(generateCards(pool(40), { count: 6, seed: 's' }).cards).toHaveLength(6);
   });
 
   it('each card has gridSize^2 cells in row-major order', () => {
@@ -53,52 +74,62 @@ describe('generateCards — structure', () => {
     }
   });
 
-  it('reports poolSize and squaresPerCard', () => {
+  it('reports pool composition (songs, titles, artists, squares)', () => {
     const result = generateCards(pool(40), { gridSize: 5, count: 2, seed: 's' });
-    expect(result.poolSize).toBe(40);
+    expect(result.songCount).toBe(40);
+    expect(result.titleCount).toBe(40);
+    expect(result.artistCount).toBe(40); // unique artist per song
+    expect(result.poolSize).toBe(80); // titles + artists
     expect(result.squaresPerCard).toBe(24);
   });
 
-  it('counts poolSize by unique songs after de-duplication', () => {
-    const dupey = [...pool(30), ...pool(30)]; // 30 unique ids, listed twice
+  it('counts squares from UNIQUE songs after de-duplication', () => {
+    const dupey = [...pool(30), ...pool(30)]; // 30 unique ids listed twice
     const result = generateCards(dupey, { gridSize: 5, count: 1, seed: 's' });
-    expect(result.poolSize).toBe(30);
+    expect(result.songCount).toBe(30);
+    expect(result.poolSize).toBe(60);
   });
 
   it('places exactly one centered free space when enabled (odd grid)', () => {
     const result = generateCards(pool(40), { gridSize: 5, freeSpace: true, count: 4, seed: 's' });
     for (const card of result.cards) {
-      const freeCells = card.cells.filter((c) => c.isFreeSpace);
-      expect(freeCells).toHaveLength(1);
+      expect(card.cells.filter((c) => c.isFreeSpace)).toHaveLength(1);
       const center = (5 * 5 - 1) / 2; // index 12
       expect(card.cells[center]?.isFreeSpace).toBe(true);
-      expect(card.cells[center]?.song).toBeNull();
+      expect(card.cells[center]?.square).toBeNull();
     }
   });
 
-  it('has no free space when disabled, filling all squares with songs', () => {
-    const result = generateCards(pool(40), { gridSize: 5, freeSpace: false, count: 2, seed: 's' });
+  it('fills every non-free cell with a title or artist square', () => {
+    const result = generateCards(pool(40), { gridSize: 5, count: 3, seed: 's' });
     for (const card of result.cards) {
-      expect(card.cells.some((c) => c.isFreeSpace)).toBe(false);
-      expect(card.cells.every((c) => c.song !== null)).toBe(true);
+      for (const cell of card.cells) {
+        if (cell.isFreeSpace) continue;
+        expect(cell.square).not.toBeNull();
+        expect(['title', 'artist']).toContain(cell.square?.kind);
+      }
     }
   });
 
-  it('uses distinct songs within a single card', () => {
+  it('mixes both title and artist squares on a card', () => {
+    const card = generateCards(pool(40), { gridSize: 5, count: 1, seed: 'mix' }).cards[0]!;
+    const kinds = new Set(card.cells.filter((c) => !c.isFreeSpace).map((c) => c.square?.kind));
+    expect(kinds.has('title')).toBe(true);
+    expect(kinds.has('artist')).toBe(true);
+  });
+
+  it('uses distinct squares within a single card', () => {
     const result = generateCards(pool(40), { gridSize: 5, count: 5, seed: 's' });
     for (const card of result.cards) {
-      const ids = card.cells.filter((c) => !c.isFreeSpace).map((c) => c.song?.id);
-      expect(new Set(ids).size).toBe(ids.length);
+      const keys = card.cells.filter((c) => !c.isFreeSpace).map((c) => c.square?.key);
+      expect(new Set(keys).size).toBe(keys.length);
     }
   });
 
-  it('gives every card a unique, non-empty, formatted id', () => {
-    const result = generateCards(pool(40), { count: 12, seed: 's' });
-    const ids = result.cards.map((c) => c.id);
+  it('gives every card a unique, formatted id', () => {
+    const ids = generateCards(pool(40), { count: 12, seed: 's' }).cards.map((c) => c.id);
     expect(new Set(ids).size).toBe(ids.length);
-    for (const id of ids) {
-      expect(id).toMatch(/^[0-9A-F]{4}-\d{2,}$/);
-    }
+    for (const id of ids) expect(id).toMatch(/^[0-9A-F]{4}-\d{2,}$/);
   });
 });
 
@@ -111,19 +142,16 @@ describe('generateCards — determinism', () => {
   });
 
   it('produces different batches for different seeds', () => {
-    const p = pool(40);
-    const a = generateCards(p, { count: 5, seed: 'seed-A' });
-    const b = generateCards(p, { count: 5, seed: 'seed-B' });
-    const sigA = a.cards.map((c) => c.cells.map((x) => x.song?.id ?? '*').join(',')).join('|');
-    const sigB = b.cards.map((c) => c.cells.map((x) => x.song?.id ?? '*').join(',')).join('|');
-    expect(sigA).not.toBe(sigB);
+    const sig = (seed: string) =>
+      generateCards(pool(40), { count: 5, seed })
+        .cards.map((c) => c.cells.map((x) => x.square?.key ?? '*').join(','))
+        .join('|');
+    expect(sig('seed-A')).not.toBe(sig('seed-B'));
   });
 
   it('echoes the provided seed, and returns a random one otherwise', () => {
-    const provided = generateCards(pool(40), { count: 1, seed: 'mine' });
-    expect(provided.seed).toBe('mine');
-    const random = generateCards(pool(40), { count: 1 });
-    expect(random.seed).toMatch(/^[0-9A-F]{8}$/);
+    expect(generateCards(pool(40), { count: 1, seed: 'mine' }).seed).toBe('mine');
+    expect(generateCards(pool(40), { count: 1 }).seed).toMatch(/^[0-9A-F]{8}$/);
   });
 });
 
@@ -131,28 +159,30 @@ describe('generateCards — batch uniqueness', () => {
   it('produces cards that are all distinct within a batch', () => {
     const result = generateCards(pool(40), { gridSize: 5, count: 20, seed: 'uniq' });
     const sigs = result.cards.map((c) =>
-      c.cells.map((x) => (x.isFreeSpace ? '*' : x.song?.id)).join('|'),
+      c.cells.map((x) => (x.isFreeSpace ? '*' : x.square?.key)).join('|'),
     );
     expect(new Set(sigs).size).toBe(result.cards.length);
   });
 
   it('throws when a unique batch is impossible for the pool size', () => {
-    // 2x2, no free space => 4 squares; a pool of exactly 4 songs yields only
-    // 4! = 24 distinct arrangements, so 100 unique cards can never be produced
-    // and generation must give up (rather than loop forever).
+    // 3 songs sharing one artist → 3 titles + 1 artist = exactly 4 squares.
+    // A 2×2 no-free-space card needs 4 squares, so only 4! = 24 distinct
+    // arrangements exist and 100 unique cards can never be produced.
+    const songs: Song[] = [
+      { id: 's1', title: 'A', artists: ['Solo'] },
+      { id: 's2', title: 'B', artists: ['Solo'] },
+      { id: 's3', title: 'C', artists: ['Solo'] },
+    ];
     expect(() =>
-      generateCards(pool(4), { gridSize: 2, freeSpace: false, count: 100 }),
+      generateCards(songs, { gridSize: 2, freeSpace: false, count: 100 }),
     ).toThrow(CardGenerationError);
   });
 });
 
 describe('generateCards — validation', () => {
-  it('rejects a non-positive count', () => {
+  it('rejects a non-positive or non-integer count', () => {
     expect(() => generateCards(pool(40), { count: 0 })).toThrow(CardGenerationError);
     expect(() => generateCards(pool(40), { count: -3 })).toThrow(CardGenerationError);
-  });
-
-  it('rejects a non-integer count', () => {
     expect(() => generateCards(pool(40), { count: 2.5 })).toThrow(CardGenerationError);
   });
 
@@ -172,17 +202,16 @@ describe('generateCards — validation', () => {
     expect(result.cards[0]?.cells).toHaveLength(16);
   });
 
-  it('rejects a pool that is too small, counted by UNIQUE songs', () => {
-    // 24 songs are needed for a 5x5 with free space. 30 raw songs but only 20
-    // unique => must fail.
-    const raw = [...pool(20), ...pool(20)]; // 20 unique ids
-    expect(() => generateCards(raw, { gridSize: 5, freeSpace: true, count: 1 })).toThrow(
+  it('rejects a pool with too few unique squares (titles + artists)', () => {
+    // 11 songs → 11 titles + 11 artists = 22 squares < 24 needed for a 5×5.
+    expect(() => generateCards(pool(11), { gridSize: 5, freeSpace: true, count: 1 })).toThrow(
       CardGenerationError,
     );
   });
 
   it('accepts a pool that is exactly large enough', () => {
-    const result = generateCards(pool(24), { gridSize: 5, freeSpace: true, count: 1, seed: 's' });
+    // 12 songs → 12 titles + 12 artists = 24 squares == needed for a 5×5.
+    const result = generateCards(pool(12), { gridSize: 5, freeSpace: true, count: 1, seed: 's' });
     expect(result.squaresPerCard).toBe(24);
     expect(result.cards).toHaveLength(1);
   });

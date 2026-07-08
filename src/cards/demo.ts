@@ -5,7 +5,7 @@
  * doubles as a quick manual sanity check that generation is deterministic.
  */
 
-import { generateCards, type Song } from './index.js';
+import { generateCards, type CardCell, type Song } from './index.js';
 
 /** Build a mock pool of `n` songs with predictable titles/artists. */
 function mockPool(n: number): Song[] {
@@ -30,19 +30,19 @@ function mockPool(n: number): Song[] {
   return songs;
 }
 
-function renderCard(gridSize: number, cells: { song: Song | null; isFreeSpace: boolean }[]): string {
+function renderCard(gridSize: number, cells: CardCell[]): string {
   const lines: string[] = [];
   for (let r = 0; r < gridSize; r++) {
     const cellStrs: string[] = [];
     for (let c = 0; c < gridSize; c++) {
       const cell = cells[r * gridSize + c];
       if (!cell) continue;
-      if (cell.isFreeSpace) {
-        cellStrs.push('★ FREE'.padEnd(18));
+      if (cell.isFreeSpace || !cell.square) {
+        cellStrs.push('★ FREE'.padEnd(22));
       } else {
-        const s = cell.song as Song;
-        const label = `${s.title} — ${s.artists.join(', ')}`;
-        cellStrs.push(label.slice(0, 18).padEnd(18));
+        const tag = cell.square.kind === 'artist' ? '[A]' : '[S]';
+        const label = `${tag} ${cell.square.label}`;
+        cellStrs.push(label.slice(0, 22).padEnd(22));
       }
     }
     lines.push(cellStrs.join(' | '));

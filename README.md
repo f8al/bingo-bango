@@ -54,7 +54,9 @@ Bingo Bango is intentionally small and cheap to run:
 - **Read-only Spotify scopes.** We request only
   `playlist-read-private` and `playlist-read-collaborative` — enough to list and
   read the user's playlists, nothing more.
-- **Each bingo square is a song** (title + artist). The **host plays the music**
+- **Each bingo square is a song title _or_ an artist**, drawn from the playlist
+  and mixed on the card. When the host plays a song it covers that song's title
+  square **and** any square with that song's artist. The **host plays the music**
   from their own Spotify; the app only generates cards.
 - **In-app preview playback is out of scope.** Spotify
   [deprecated `preview_url`](https://developer.spotify.com/blog/2024-11-27-changes-to-the-web-api)
@@ -83,6 +85,9 @@ and [`docs/ROADMAP.md`](docs/ROADMAP.md) for the full plan.
   your playlists as the song pool.
 - **Demo mode**: no Spotify app configured? The app runs on a built-in party
   playlist so you can try everything without credentials.
+- **Title & artist squares** — every square is either a song title or an artist,
+  mixed roughly half-and-half; a played song marks its title square and any of
+  its artist squares ("both facets").
 - **Generate unique cards** — choose grid size (3×3 / 4×4 / 5×5), free space,
   how many cards, and an optional seed for reproducible batches.
 - **Print-ready PDF export** (one card per page).
