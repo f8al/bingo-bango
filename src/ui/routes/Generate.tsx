@@ -256,14 +256,22 @@ function Results() {
           </p>
         </div>
         <div className="no-print flex flex-wrap gap-2">
-          <Button onClick={() => void exportPdf()} disabled={exporting}>
-            {exporting ? 'Preparing…' : 'Export PDF'}
+          <Link to="/print">
+            <Button>🖨 Print cards</Button>
+          </Link>
+          <Button variant="secondary" onClick={() => void exportPdf()} disabled={exporting}>
+            {exporting ? 'Preparing…' : 'Download PDF (text)'}
           </Button>
           <Link to="/call">
-            <Button variant="secondary">Open caller</Button>
+            <Button variant="ghost">Caller</Button>
           </Link>
         </div>
       </div>
+
+      <p className="text-xs opacity-60">
+        Print one card per page for each player. Prefer phones? Players can also open a card from
+        its own page to play and mark along — that’s the mobile fallback.
+      </p>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {result.cards.map((card) => (

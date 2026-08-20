@@ -7,7 +7,22 @@
  */
 
 import type { Song } from '../cards';
-import type { PlaylistTrackItem } from './types';
+import type { PlaylistTrackItem, SpotifyImage } from './types';
+
+/**
+ * Choose a light, print-friendly album-art size. Spotify returns images largest
+ * first (typically 640 / 300 / 64 px). We prefer the one nearest ~300 px: big
+ * enough to print cleanly, small enough to stay easy on a weak laptop.
+ */
+function pickArt(images: readonly SpotifyImage[] | undefined): string | undefined {
+  if (!images || images.length === 0) return undefined;
+  let best = images[0] as SpotifyImage;
+  for (const img of images) {
+    const w = img.width ?? 9999;
+    if (Math.abs(w - 300) < Math.abs((best.width ?? 9999) - 300)) best = img;
+  }
+  return best.url;
+}
 
 /**
  * Convert playlist items to a clean, de-duplicated `Song[]`:
@@ -28,7 +43,7 @@ export function tracksToSongs(items: readonly PlaylistTrackItem[]): Song[] {
 
     seen.add(track.id);
 
-    const albumArt = track.album?.images?.[0]?.url;
+    const albumArt = pickArt(track.album?.images);
     const song: Song = {
       id: track.id,
       title: track.name,

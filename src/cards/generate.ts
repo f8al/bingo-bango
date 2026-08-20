@@ -68,20 +68,37 @@ export function collectSquares(songs: readonly Song[]): SquarePool {
   const deduped = dedupeSongs(songs);
   const titles: Square[] = [];
   const artists: Square[] = [];
-  const artistSeen = new Set<string>();
+  const artistByKey = new Map<string, Square>();
+  const artistOrder: string[] = [];
 
   for (const song of deduped) {
     if (song.title.length > 0) {
-      titles.push({ kind: 'title', label: song.title, key: titleKey(song.id), songId: song.id });
+      const square: Square = {
+        kind: 'title',
+        label: song.title,
+        key: titleKey(song.id),
+        songId: song.id,
+      };
+      if (song.albumArt) square.image = song.albumArt;
+      titles.push(square);
     }
     for (const name of song.artists) {
       const norm = normalizeArtist(name);
-      if (norm.length === 0 || artistSeen.has(norm)) continue;
-      artistSeen.add(norm);
-      artists.push({ kind: 'artist', label: name, key: artistKey(name) });
+      if (norm.length === 0) continue;
+      const existing = artistByKey.get(norm);
+      if (!existing) {
+        const square: Square = { kind: 'artist', label: name, key: artistKey(name) };
+        if (song.albumArt) square.image = song.albumArt;
+        artistByKey.set(norm, square);
+        artistOrder.push(norm);
+      } else if (!existing.image && song.albumArt) {
+        // Backfill a representative picture from a later song by this artist.
+        existing.image = song.albumArt;
+      }
     }
   }
 
+  for (const norm of artistOrder) artists.push(artistByKey.get(norm) as Square);
   return { titles, artists };
 }
 

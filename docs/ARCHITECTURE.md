@@ -170,8 +170,9 @@ batch**, because every random decision flows from the single seeded stream.
 | ------------- | ------- |
 | `/`           | Landing / login (Spotify connect). |
 | `/callback`   | OAuth redirect target; exchanges the code, then routes onward. |
-| `/generate`   | Pick a playlist, choose count / grid size / free space, generate + export. |
-| `/card/:id`   | View a single card (shareable; interactive in the should-have phase). |
+| `/generate`   | Pick a playlist, choose count / grid size / free space, generate. |
+| `/print`      | **Primary output**: one picture card per page → `window.print()` (paper or "Save as PDF"). No PDF library loaded. |
+| `/card/:id`   | Mobile fallback: view/play a single card (shareable via link + QR). |
 | `/call`       | Caller screen: draws songs from the pool in random/seeded order. |
 
 ---

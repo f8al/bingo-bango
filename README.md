@@ -11,12 +11,13 @@ for free as static files.
 
 ## Screenshots
 
-|                         Landing                          |                          Generate a batch                          |                        Play + share (mobile)                        |
-| :------------------------------------------------------: | :----------------------------------------------------------------: | :-----------------------------------------------------------------: |
-| [![Landing](docs/screenshots/home.png)](docs/screenshots/home.png) | [![Generate](docs/screenshots/generate.png)](docs/screenshots/generate.png) | [![Play](docs/screenshots/play-mobile.png)](docs/screenshots/play-mobile.png) |
+|                     Print (primary)                      |                         Generate a batch                          |                     Play + share (mobile fallback)                     |
+| :------------------------------------------------------: | :---------------------------------------------------------------: | :--------------------------------------------------------------------: |
+| [![Print](docs/screenshots/print.png)](docs/screenshots/print.png) | [![Generate](docs/screenshots/generate.png)](docs/screenshots/generate.png) | [![Play](docs/screenshots/play-mobile.png)](docs/screenshots/play-mobile.png) |
 
-_Shown in demo mode (built-in party playlist). Interactive card with a completed
-top row → BINGO, plus a shareable QR code._
+_Shown in demo mode (built-in playlist) — squares show a colored fallback tile;
+with a real Spotify playlist each square shows the **album art**. Printing is the
+main path; phones are the fallback._
 
 ---
 
@@ -81,6 +82,12 @@ and [`docs/ROADMAP.md`](docs/ROADMAP.md) for the full plan.
 
 ## Features
 
+- **Print-first.** One picture-filled card per page via your browser's own print
+  dialog (→ paper or "Save as PDF") — no heavy libraries load, so it's fast even
+  on a low-powered laptop. Playing on phones is the fallback.
+- **A picture on every square.** Album art from the playlist on each square (with
+  a clean colored tile when a track has no artwork), so players recognize songs
+  and artists at a glance.
 - **Log in with Spotify** (read-only, PKCE — no client secret) and pick any of
   your playlists as the song pool.
 - **Demo mode**: no Spotify app configured? The app runs on a built-in party
@@ -90,7 +97,8 @@ and [`docs/ROADMAP.md`](docs/ROADMAP.md) for the full plan.
   its artist squares ("both facets").
 - **Generate unique cards** — choose grid size (3×3 / 4×4 / 5×5), free space,
   how many cards, and an optional seed for reproducible batches.
-- **Print-ready PDF export** (one card per page).
+- **Text-only PDF download** (one card per page) as a lightweight secondary
+  option; loaded on demand so it never slows the print path.
 - **Interactive digital cards** with tap-to-mark and automatic **BINGO
   detection** (row / column / diagonal).
 - **Caller screen** that draws songs in a deterministic shuffled order.

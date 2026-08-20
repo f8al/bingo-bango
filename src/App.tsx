@@ -7,6 +7,7 @@ import { Layout } from './ui/components/Layout';
 import { Home } from './ui/routes/Home';
 import { Callback } from './ui/routes/Callback';
 import { Generate } from './ui/routes/Generate';
+import { Print } from './ui/routes/Print';
 import { CardView } from './ui/routes/CardView';
 import { Call } from './ui/routes/Call';
 
@@ -19,6 +20,7 @@ export function App() {
             <Route path="/" element={<Home />} />
             <Route path="/callback" element={<Callback />} />
             <Route path="/generate" element={<Generate />} />
+            <Route path="/print" element={<Print />} />
             <Route path="/card/:id" element={<CardView />} />
             <Route path="/call" element={<Call />} />
             <Route path="*" element={<Navigate to="/" replace />} />

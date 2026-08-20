@@ -38,6 +38,12 @@ export interface Square {
   key: string;
   /** The source song id — present only for `title` squares. */
   songId?: string;
+  /**
+   * Album-art URL for a picture on the square. For a title square it's that
+   * song's art; for an artist square it's a representative song's art. Absent
+   * when the source has no artwork (e.g. demo data), and the UI shows a tile.
+   */
+  image?: string;
 }
 
 /** A single cell within a bingo card. Either a playable square or the free space. */

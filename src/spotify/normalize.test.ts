@@ -37,6 +37,23 @@ describe('tracksToSongs', () => {
     expect(songs[0]).not.toHaveProperty('albumArt');
   });
 
+  it('prefers a ~300px album image over the largest/smallest', () => {
+    const songs = tracksToSongs([
+      item(
+        track({
+          album: {
+            images: [
+              { url: 'http://img/640', height: 640, width: 640 },
+              { url: 'http://img/300', height: 300, width: 300 },
+              { url: 'http://img/64', height: 64, width: 64 },
+            ],
+          },
+        }),
+      ),
+    ]);
+    expect(songs[0]?.albumArt).toBe('http://img/300');
+  });
+
   it('drops null tracks (removed from playlist)', () => {
     expect(tracksToSongs([item(null)])).toEqual([]);
   });

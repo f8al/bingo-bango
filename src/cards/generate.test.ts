@@ -52,6 +52,20 @@ describe('collectSquares', () => {
     expect(titles).toHaveLength(1); // empty title dropped
     expect(artists).toHaveLength(1); // "Queen" and "queen " collapse
   });
+
+  it('carries album art onto title squares and a representative one onto artists', () => {
+    const songs: Song[] = [
+      { id: 's1', title: 'One', artists: ['Queen'] }, // no art
+      { id: 's2', title: 'Two', artists: ['Queen'], albumArt: 'http://art/2' },
+      { id: 's3', title: 'Three', artists: ['ABBA'], albumArt: 'http://art/3' },
+    ];
+    const { titles, artists } = collectSquares(songs);
+    expect(titles.find((t) => t.songId === 's1')?.image).toBeUndefined();
+    expect(titles.find((t) => t.songId === 's2')?.image).toBe('http://art/2');
+    // Queen's first song had no art; backfilled from the later song that does.
+    expect(artists.find((a) => a.label === 'Queen')?.image).toBe('http://art/2');
+    expect(artists.find((a) => a.label === 'ABBA')?.image).toBe('http://art/3');
+  });
 });
 
 describe('squaresPerCard', () => {

@@ -32,7 +32,7 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Print styles: hide chrome, lay cards out cleanly for paper. */
+/* Print styles: hide chrome, one card per page, keep pictures/colors. */
 @media print {
   .no-print {
     display: none !important;
@@ -40,5 +40,18 @@ body {
   body {
     background: #fff !important;
     color: #000 !important;
+  }
+  /* Print album art and the green FREE space in color, not as blank boxes. */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  /* One bingo card per printed page. */
+  .print-card {
+    break-inside: avoid;
+    break-after: page;
+  }
+  .print-card:last-child {
+    break-after: auto;
   }
 }
