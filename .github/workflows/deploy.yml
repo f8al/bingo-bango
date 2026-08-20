@@ -30,11 +30,16 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
+      # Optional: a repo *variable* named VITE_SPOTIFY_CLIENT_ID overrides any
+      # committed .env. When it's unset we do NOT pass an empty value (which
+      # would clobber a client id checked into .env and force demo mode).
+      - name: Configure Spotify client id (optional)
+        if: ${{ vars.VITE_SPOTIFY_CLIENT_ID != '' }}
+        run: echo "VITE_SPOTIFY_CLIENT_ID=${{ vars.VITE_SPOTIFY_CLIENT_ID }}" >> .env
       - name: Build
         env:
           # Serve under /<repo>/ on a project Pages site.
           BASE_PATH: /${{ github.event.repository.name }}/
-          VITE_SPOTIFY_CLIENT_ID: ${{ vars.VITE_SPOTIFY_CLIENT_ID }}
         run: npm run build
       - name: SPA fallback for deep links
         run: cp dist/index.html dist/404.html
